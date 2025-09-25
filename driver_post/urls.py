@@ -1,21 +1,10 @@
 from django.urls import path
-from .views import (
-    DriverPostListCreateView,
-    DriverPostDetailView,
-    MatchDriverPostView,
-    CityListCreateView,
-    CityDetailView,
-)
+from .views import DriverPostListCreateView, DriverPostDetailView, MatchDriverPostView
 
 app_name = 'driver_post'
 
 urlpatterns = [
-    # DriverPost endpoints
-    path('', DriverPostListCreateView.as_view(), name='driverpost-list-create'),
-    path('driverposts/<uuid:pk>/', DriverPostDetailView.as_view(), name='driverpost-detail'),
-    path('driverposts/<uuid:post_id>/match/', MatchDriverPostView.as_view(), name='match-driverpost'),
-
-    # City endpoints
-    path('cities/', CityListCreateView.as_view(), name='city-list-create'),
-    path('cities/<int:pk>/', CityDetailView.as_view(), name='city-detail'),
+    path('', DriverPostListCreateView.as_view(), name='list-create'),
+    path('<uuid:post_id>/', DriverPostDetailView.as_view(), name='detail'),
+    path('match/<uuid:post_id>/', MatchDriverPostView.as_view(), name='match-post'),
 ]

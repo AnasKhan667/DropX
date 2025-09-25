@@ -24,6 +24,8 @@ scipy = "*"
 joblib = "*"
 jupyter = "*"
 django-cors-headers = "*"
+opencv-python = "*"
+requests = "*"
 
 [dev-packages]
 

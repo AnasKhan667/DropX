@@ -1,7 +1,8 @@
-from django.db import models
+import uuid
+from django.utils import timezone
 from accounts.models import CustomUser
 from delivery.models import Delivery
-import uuid
+from django.db import models
 
 class Notification(models.Model):
     notification_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -14,3 +15,9 @@ class Notification(models.Model):
 
     def __str__(self):
         return f"Notification {self.notification_id} for {self.user_id.email}"
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['user_id']),
+            models.Index(fields=['delivery_id']),
+        ]

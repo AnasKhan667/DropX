@@ -7,19 +7,27 @@ from django.core.exceptions import ValidationError
 
 class City(models.Model):
     city_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=100)
     state = models.CharField(max_length=100, blank=True, null=True)
     country = models.CharField(max_length=100)
     latitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
 
-    def __str__(self):
-        return self.name
-
     class Meta:
         indexes = [models.Index(fields=['name', 'country'])]
 
+    def __str__(self):
+        return self.name
+
+
 class DriverPost(models.Model):
+    STATUS_CHOICES = [
+        ('Active', 'Active'),
+        ('Inactive', 'Inactive'),
+        ('Expired', 'Expired'),
+        ('Booked', 'Booked'),
+    ]
+
     post_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='driver_posts')
     vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, related_name='driver_posts')
@@ -31,15 +39,18 @@ class DriverPost(models.Model):
     end_longitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
     departure_date = models.DateField()
     departure_time = models.TimeField()
-    available_capacity = models.DecimalField(max_digits=10, decimal_places=2)  # e.g., cubic meters
-    max_weight = models.DecimalField(max_digits=10, decimal_places=2)  # e.g., kilograms
-    status = models.CharField(
-        max_length=20,
-        choices=[('Active', 'Active'), ('Inactive', 'Inactive'), ('Expired', 'Expired')],
-        default='Active'
-    )
+    available_capacity = models.DecimalField(max_digits=10, decimal_places=2)
+    max_weight = models.DecimalField(max_digits=10, decimal_places=2)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Active')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['user', 'status']),
+            models.Index(fields=['start_city', 'end_city']),
+            models.Index(fields=['departure_date']),
+        ]
 
     def __str__(self):
         return f"Post {self.post_id} by {self.user.email}"
@@ -50,12 +61,11 @@ class DriverPost(models.Model):
         if self.departure_date < timezone.now().date():
             raise ValidationError("Departure date cannot be in the past.")
 
-    class Meta:
-        indexes = [
-            models.Index(fields=['user', 'status']),
-            models.Index(fields=['start_city', 'end_city']),
-            models.Index(fields=['departure_date']),
-        ]
+        if (self.start_latitude is not None) != (self.start_longitude is not None):
+            raise ValidationError("Both start latitude and longitude must be provided.")
+        if (self.end_latitude is not None) != (self.end_longitude is not None):
+            raise ValidationError("Both end latitude and longitude must be provided.")
+
 
 class PostLog(models.Model):
     log_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
