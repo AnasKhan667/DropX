@@ -144,21 +144,9 @@ class CreateDeliveryWithCostView(generics.CreateAPIView):
         except Exception as e:
             logger.error(f"Route creation error for delivery {delivery.delivery_id}: {str(e)}")
 
-        # ✅ Total cost = distance * 1.0 + weight * 0.5
         delivery.total_cost = (Decimal(str(distance)) * Decimal("1.0")) + (total_weight * Decimal("0.5"))
         delivery.save()
 
-        # ✅ Notification
-        Notification.objects.create(
-            user_id=delivery.receiver_id or delivery.sender_id,
-            delivery_id=delivery,
-            type="Delivery Created",
-            message=f"A new delivery has been created: {delivery.delivery_id}",
-            is_read=False,
-            created_at=timezone.now(),
-        )
-
-        # ✅ Delivery log
         DeliveryLog.objects.create(
             delivery=delivery,
             action="Delivery Created",
