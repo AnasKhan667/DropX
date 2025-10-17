@@ -7,7 +7,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-
 @receiver(post_save, sender=Delivery)
 def notify_delivery_update(sender, instance, created, **kwargs):
     try:
@@ -29,14 +28,22 @@ def notify_delivery_update(sender, instance, created, **kwargs):
                     created_at=timezone.now()
                 )
 
+        # ✅ Driver fallback (if driver_id is null)
+        driver_user = None
+        if instance.driver_id:
+            driver_user = instance.driver_id
+        elif getattr(instance, "driver_post_id", None) and getattr(instance.driver_post_id, "user", None):
+            driver_user = instance.driver_post_id.user
+
+        # ------------------------------
+        # Delivery created notifications
+        # ------------------------------
         if created:
-            # Notify sender
             create_notification(
                 instance.sender_id,
                 'Delivery Created',
                 f'Delivery {instance.delivery_id} created.'
             )
-            # Notify receiver
             if instance.receiver_id:
                 create_notification(
                     instance.receiver_id,
@@ -45,11 +52,14 @@ def notify_delivery_update(sender, instance, created, **kwargs):
                 )
             logger.info(f"Created notifications for delivery {instance.delivery_id}")
 
+        # ------------------------------
+        # Assigned status notifications
+        # ------------------------------
         elif instance.status == DeliveryStatus.ASSIGNED:
             create_notification(
                 instance.sender_id,
                 'Delivery Accepted',
-                f'Delivery {instance.delivery_id} accepted by driver {instance.driver_id.email if instance.driver_id else "unknown"}.'  
+                f'Delivery {instance.delivery_id} accepted by driver {driver_user.email if driver_user else "unknown"}.'  
             )
             if instance.receiver_id:
                 create_notification(
@@ -59,6 +69,9 @@ def notify_delivery_update(sender, instance, created, **kwargs):
                 )
             logger.info(f"Created accepted notifications for delivery {instance.delivery_id}")
 
+        # ------------------------------
+        # In transit
+        # ------------------------------
         elif instance.status == DeliveryStatus.IN_TRANSIT:
             create_notification(
                 instance.sender_id,
@@ -73,6 +86,9 @@ def notify_delivery_update(sender, instance, created, **kwargs):
                 )
             logger.info(f"Created in-transit notifications for delivery {instance.delivery_id}")
 
+        # ------------------------------
+        # Delivered
+        # ------------------------------
         elif instance.status == DeliveryStatus.DELIVERED:
             create_notification(
                 instance.sender_id,
@@ -87,6 +103,9 @@ def notify_delivery_update(sender, instance, created, **kwargs):
                 )
             logger.info(f"Created delivered notifications for delivery {instance.delivery_id}")
 
+        # ------------------------------
+        # Cancelled
+        # ------------------------------
         elif instance.status == DeliveryStatus.CANCELLED:
             create_notification(
                 instance.sender_id,

@@ -25,3 +25,4 @@ numpy
 requests
 daphne
 channels
+channels_redis

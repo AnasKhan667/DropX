@@ -7,7 +7,7 @@ from django.utils import timezone
 
 class ChatConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.chat_room_id = self.scope['url_route']['kwargs']['chat_room_id']
+        self.chat_room_id = self.scope['url_route']['kwargs']['room_uuid']
         self.room_group_name = f'chat_{self.chat_room_id}'
 
         # Verify user is part of the chat room
