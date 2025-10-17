@@ -1,31 +1,27 @@
 """
 ASGI config for DropX project.
-
-It exposes the ASGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/5.1/howto/deployment/asgi/
 """
 
 import os
 import django
-
-# ✅ Pehle settings set karo
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "DropX.settings")
-
-# ✅ Django ko setup karo
-django.setup()
-
-# ✅ Ab import karo ASGI + routing
 from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.auth import AuthMiddlewareStack
-import chat.routing
 from django.core.asgi import get_asgi_application
 
+# ✅ Django settings environment set karo pehle
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'DropX.settings')
+
+# ✅ Django setup abhi karo
+django.setup()
+
+# ✅ Ab import karo routing aur middleware
+from chat.middleware import JWTAuthMiddleware
+import chat.routing
+
+# ✅ Application config
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
-    "websocket": AuthMiddlewareStack(
+    "websocket": JWTAuthMiddleware(   # 👈 yahan apna custom middleware lagao
         URLRouter(chat.routing.websocket_urlpatterns)
     ),
 })
-

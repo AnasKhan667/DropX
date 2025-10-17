@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     'django_filters',
     'phonenumber_field',
     'drf_yasg',
+    'channels',
 
     # Local apps
     'accounts',
