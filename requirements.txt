@@ -23,3 +23,5 @@ django-filter
 opencv-python
 numpy
 requests
+daphne
+channels

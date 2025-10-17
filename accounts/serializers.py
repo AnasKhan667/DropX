@@ -42,7 +42,7 @@ class CustomUserSerializer(serializers.ModelSerializer):
         if role in ['Driver', 'Both']:
             if not license_number:
                 raise serializers.ValidationError("License number is required for Driver role.")
-            DriverProfile.objects.create(user=user, license_number=license_number)
+            DriverProfile.objects.create(user=user, license_number=license_number,)
 
         return user
 
@@ -62,7 +62,7 @@ class DriverProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = DriverProfile
-        fields = ['id', 'user', 'license_number', 'is_driver_verified', 'wallet_balance']
+        fields = ['id', 'user', 'license_number', 'is_driver_verified', 'wallet_balance', 'easypaisa_phone']
 
 
 class AuditLogSerializer(serializers.ModelSerializer):

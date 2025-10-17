@@ -1,10 +1,11 @@
 from django.urls import path
-from . import views
+from .views import ChatRoomListCreateView, MessageListCreateView, MessageDetailView, MarkMessageAsReadView
 
 app_name = 'chat'
 
 urlpatterns = [
-    path('', views.ChatListCreateView.as_view(), name='chat-list-create'),
-    path('<uuid:chat_id>/', views.ChatDetailView.as_view(), name='chat-detail'),
-    path('<uuid:chat_id>/mark-as-read/', views.MarkChatAsReadView.as_view(), name='mark-chat-as-read'),
+    path('rooms/', ChatRoomListCreateView.as_view(), name='chat-room-list-create'),
+    path('messages/', MessageListCreateView.as_view(), name='message-list-create'),
+    path('messages/<uuid:message_id>/', MessageDetailView.as_view(), name='message-detail'),
+    path('messages/<uuid:message_id>/read/', MarkMessageAsReadView.as_view(), name='message-mark-read'),
 ]

@@ -6,6 +6,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from .models import Delivery, DeliveryStatus, DeliveryLog, Package
 from .serializers import DeliveryReadSerializer, DeliveryWriteSerializer
 from notification.models import Notification
+
 from django.utils import timezone
 from route.models import Route
 import requests

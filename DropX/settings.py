@@ -105,6 +105,15 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'DropX.wsgi.application'
 
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("127.0.0.1", 6379)],
+        },
+    },
+}
+
 # Database
 DATABASES = {
     'default': {
@@ -156,3 +165,7 @@ CORS_ALLOW_ALL_ORIGINS = True  # Allow all origins for development
 #     "http://localhost:3000",
 #     "http://192.168.1.5:3000",
 # ]
+
+# DropX/settings.py
+STRIPE_SECRET_KEY = 'sk_test_your_stripe_secret_key'
+STRIPE_PUBLISHABLE_KEY = 'pk_test_your_stripe_publishable_key'

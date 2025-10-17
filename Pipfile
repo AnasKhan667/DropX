@@ -26,6 +26,10 @@ jupyter = "*"
 django-cors-headers = "*"
 opencv-python = "*"
 requests = "*"
+stripe = "*"
+channels = "*"
+redis = "*"
+daphne = "*"
 
 [dev-packages]
 

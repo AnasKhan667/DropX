@@ -1,17 +1,19 @@
 from rest_framework import serializers
 from .models import Delivery, Package, DeliveryLog
 from accounts.models import CustomUser
-from django.utils import timezone
 from accounts.serializers import CustomUserSerializer
 from driver_post.serializers import DriverPostSerializer, CitySerializer
 from decimal import Decimal
 from route.models import Route
 from route.serializers import RouteSerializer
+from django.utils import timezone
+
 
 class DimensionsSerializer(serializers.Serializer):
     length = serializers.FloatField()
     width = serializers.FloatField()
     height = serializers.FloatField()
+
 
 class PackageSerializer(serializers.ModelSerializer):
     dimensions = DimensionsSerializer()
@@ -19,17 +21,16 @@ class PackageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Package
-        fields = [
-            'package_id', 'description', 'weight', 'dimensions',
-            'is_fragile', 'created_at'
-        ]
+        fields = ['package_id', 'description', 'weight', 'dimensions', 'is_fragile', 'created_at']
         read_only_fields = ['package_id', 'created_at']
+
 
 class DeliveryLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = DeliveryLog
         fields = ['log_id', 'delivery', 'action', 'comments', 'created_at']
         read_only_fields = ['log_id', 'created_at']
+
 
 class AddressSerializer(serializers.Serializer):
     address_line = serializers.CharField()
@@ -38,6 +39,7 @@ class AddressSerializer(serializers.Serializer):
     country = serializers.CharField()
     latitude = serializers.FloatField()
     longitude = serializers.FloatField()
+
 
 class DeliveryWriteSerializer(serializers.ModelSerializer):
     pickup_address = AddressSerializer()
@@ -49,10 +51,10 @@ class DeliveryWriteSerializer(serializers.ModelSerializer):
         model = Delivery
         fields = [
             'delivery_id', 'sender_id', 'driver_id', 'driver_post_id',
-            'pickup_address', 'dropoff_address', 'delivery_date', 'estimated_delivery_time',
-            'total_cost', 'status', 'packages'
+            'pickup_address', 'dropoff_address', 'delivery_date',
+            'estimated_delivery_time', 'total_cost', 'status', 'packages',
         ]
-        read_only_fields = ['delivery_id', 'sender_id', 'driver_id']
+        read_only_fields = ['delivery_id', 'sender_id', 'driver_id', ]
 
     def create(self, validated_data):
         pickup_data = validated_data.pop('pickup_address')
@@ -69,15 +71,17 @@ class DeliveryWriteSerializer(serializers.ModelSerializer):
 
         delivery = super().create(validated_data)
 
-        for package in packages_data:
-            Package.objects.create(delivery_id=delivery, **package)
-
+        # calculate total_cost
+        total_weight = sum(Decimal(p['weight']) for p in packages_data)
+        delivery.total_cost = total_weight * Decimal("0.5")  # example calculation
+        delivery.save()
         return delivery
 
     def validate_delivery_date(self, value):
         if value < timezone.now().date():
             raise serializers.ValidationError("Delivery date must be in the future.")
         return value
+
 
 class DeliveryReadSerializer(serializers.ModelSerializer):
     sender_id = CustomUserSerializer(read_only=True)
@@ -99,15 +103,14 @@ class DeliveryReadSerializer(serializers.ModelSerializer):
             'pickup_address', 'dropoff_address',
             'pickup_city', 'dropoff_city',
             'delivery_date', 'estimated_delivery_time', 'total_cost', 'status',
-            'created_at', 'updated_at', 'packages', 'logs', 'route'
+            'created_at', 'updated_at', 'packages', 'logs', 'route', 
         ]
         read_only_fields = [
             'delivery_id', 'sender_id', 'driver_id', 'created_at',
-            'updated_at', 'logs', 'route'
+            'updated_at', 'logs', 'route', 
         ]
 
     def get_route(self, obj):
         route = Route.objects.filter(delivery_id=obj).first()
-        if route:
-            return RouteSerializer(route).data
-        return None
+        return RouteSerializer(route).data if route else None
+
