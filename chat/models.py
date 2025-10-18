@@ -6,6 +6,7 @@ from delivery.models import Delivery
 class ChatRoom(models.Model):
     chat_room_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     delivery = models.OneToOneField(Delivery, on_delete=models.CASCADE, related_name='chat_room')
+    allowed_drivers = models.ManyToManyField('accounts.CustomUser', blank=True, related_name='temp_allowed_chats')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
