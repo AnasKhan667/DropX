@@ -79,7 +79,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
         try:
             chat_room = ChatRoom.objects.get(chat_room_id=self.chat_room_id)
             user = self.scope['user']
-            valid = user in [chat_room.delivery.sender_id, chat_room.delivery.driver_id]
+            valid = (
+                user.id == chat_room.delivery.sender_id.id or
+                (chat_room.delivery.driver_post_id and user.id == chat_room.delivery.driver_post_id.user.id) or
+                (user.role == 'driver' and chat_room.delivery.driver_post_id is None)
+         )   
             print(f"🔍 User validation for {user}: {valid}")
             return valid
         except ChatRoom.DoesNotExist:
@@ -90,13 +94,27 @@ class ChatConsumer(AsyncWebsocketConsumer):
     def get_receiver(self, sender):
         try:
             chat_room = ChatRoom.objects.get(chat_room_id=self.chat_room_id)
+
+            # Agar sender customer hai
             if sender == chat_room.delivery.sender_id:
-                return chat_room.delivery.driver_id
-            elif sender == chat_room.delivery.driver_id:
+                driver_post = chat_room.delivery.driver_post_id
+                if driver_post:
+                    return driver_post.user  # Driver ka CustomUser return karo
+                else:
+                    return None  # driver assigned nahi, receiver None
+
+            # Agar sender driver hai
+            elif chat_room.delivery.driver_post_id and sender == chat_room.delivery.driver_post_id.user:
                 return chat_room.delivery.sender_id
+
+            # Agar driver role hai lekin abhi assigned nahi
+            elif sender.role == 'driver' and chat_room.delivery.driver_post_id is None:
+                return chat_room.delivery.sender_id
+
             return None
         except ChatRoom.DoesNotExist:
             return None
+
 
     @database_sync_to_async
     def save_message(self, sender, receiver, content):
