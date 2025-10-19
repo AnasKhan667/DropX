@@ -78,6 +78,7 @@ class PaymentDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = PaymentSerializer
     permission_classes = [IsAuthenticated, IsSender | IsVerifiedDriver]
     authentication_classes = [JWTAuthentication]
+    lookup_field = 'payment_id'
 
     def get_queryset(self):
         user = self.request.user
