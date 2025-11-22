@@ -40,8 +40,18 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     objects = CustomUserManager()
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['first_name', 'last_name', 'phone_number'],
+                name='unique_first_last_phone'
+            )
+        ]
+
+
     def __str__(self):
         return self.email
+
 
 class SenderProfile(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

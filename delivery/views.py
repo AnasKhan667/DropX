@@ -99,7 +99,8 @@ class DeliveryRejectView(APIView):
         if delivery.driver_post_id.user != request.user:
             return Response({"error": "You can only manage deliveries for your own posts."}, status=status.HTTP_403_FORBIDDEN)
 
-        delivery.status = DeliveryStatus.REJECTED
+        # ⭐ FIX: Use CANCELLED instead of REJECTED
+        delivery.status = DeliveryStatus.CANCELLED
         delivery.save()
 
         DeliveryLog.objects.create(
@@ -107,6 +108,7 @@ class DeliveryRejectView(APIView):
             action="Delivery Rejected",
             comments=f"Delivery rejected by {request.user.email}"
         )
+
         return Response({"message": f"Delivery {delivery_id} rejected"}, status=status.HTTP_200_OK)
 
 

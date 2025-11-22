@@ -63,7 +63,7 @@ class MessageListCreateView(generics.ListCreateAPIView):
 
         # Automatically set receiver based on sender/driver
         if user == chat_room.delivery.sender_id:
-            receiver = chat_room.delivery.driver_post_id.user  # ya driver
+            receiver = chat_room.delivery.driver_post_id.user  # driver
         else:
             receiver = chat_room.delivery.sender_id
 
@@ -73,7 +73,6 @@ class MessageListCreateView(generics.ListCreateAPIView):
             chat_room=chat_room
         )
 
-        # Notification bhi create ho jaye
         Notification.objects.create(
             user_id=receiver,
             delivery_id=chat_room.delivery,

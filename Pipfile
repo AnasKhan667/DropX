@@ -30,6 +30,8 @@ stripe = "*"
 channels = "*"
 redis = "*"
 daphne = "*"
+pytest = "*"
+pytest-django = "*"
 
 [dev-packages]
 

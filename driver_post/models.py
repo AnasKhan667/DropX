@@ -8,8 +8,8 @@ from django.core.exceptions import ValidationError
 class City(models.Model):
     city_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100)
-    state = models.CharField(max_length=100, blank=True, null=True)
-    country = models.CharField(max_length=100)
+    state = models.CharField(max_length=100,null=True, blank=True)
+    country = models.CharField(max_length=100, null=True, blank=True)
     latitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
 
@@ -39,7 +39,6 @@ class DriverPost(models.Model):
     end_longitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
     departure_date = models.DateField()
     departure_time = models.TimeField()
-    available_capacity = models.DecimalField(max_digits=10, decimal_places=2)
     max_weight = models.DecimalField(max_digits=10, decimal_places=2)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Active')
     created_at = models.DateTimeField(auto_now_add=True)

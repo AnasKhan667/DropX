@@ -28,7 +28,7 @@ class DriverVerificationListCreateView(generics.ListCreateAPIView):
         verification = serializer.save(user=self.request.user)
 
         try:
-            # --- Face Verification ---
+            # --- FACE VERIFICATION ---
             cnic_image = face_recognition.load_image_file(verification.cnic_image.path)
             face_image = face_recognition.load_image_file(verification.face_image.path)
 
@@ -51,21 +51,41 @@ class DriverVerificationListCreateView(generics.ListCreateAPIView):
             verification.face_verification_status = is_face_match
 
             if is_face_match:
-                # --- CNIC OCR ---
+
+                # --- CNIC OCR EXTRACTION ---
                 image_bgr = cv2.imread(verification.cnic_image.path)
                 gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
                 raw_text = pytesseract.image_to_string(gray)
 
-                # --- Store formatted OCR text ---
+                # Store formatted OCR text
                 lines = [line.strip() for line in raw_text.split('\n') if line.strip()]
                 verification.formatted_text = '\n'.join(lines)
 
-                # Normalize text for extracting fields
                 text_normalized = re.sub(r'[^0-9A-Za-z\s]', '', raw_text)
 
                 # Extract CNIC number
                 cnic_candidate = re.findall(r'\d{5}\s*\d{7}\s*\d', text_normalized)
                 verification.cnic_number = cnic_candidate[0] if cnic_candidate else None
+
+                # --- 🔥 PREVENT MULTIPLE ACCOUNTS USING SAME CNIC ---
+                if verification.cnic_number:
+                    duplicate = DriverVerification.objects.filter(
+                        cnic_number=verification.cnic_number,
+                        verification_status="Verified"
+                    ).exclude(user=self.request.user)
+
+                    if duplicate.exists():
+                        verification.verification_status = "Rejected"
+                        verification.document_verification_status = False
+                        verification.failure_reason = "This CNIC is already verified by another user."
+                        verification.save()
+
+                        VerificationLog.objects.create(
+                            verification=verification,
+                            action="CNIC Duplicate Blocked",
+                            comments="CNIC already used by another verified driver."
+                        )
+                        return
 
                 # Extract Name
                 name = None
@@ -74,9 +94,10 @@ class DriverVerificationListCreateView(generics.ListCreateAPIView):
                         if i + 1 < len(lines):
                             name = lines[i + 1]
                         break
+
                 verification.full_name = name
 
-                # Final decision based on CNIC OCR success
+                # FINAL DECISION
                 if verification.cnic_number and verification.full_name:
                     verification.document_verification_status = True
                     verification.verification_status = "Verified"
@@ -85,25 +106,25 @@ class DriverVerificationListCreateView(generics.ListCreateAPIView):
                     verification.document_verification_status = False
                     verification.verification_status = "Rejected"
                     verification.failure_reason = "CNIC details could not be extracted properly."
+
             else:
                 verification.verification_status = "Rejected"
                 verification.failure_reason = "Face did not match."
 
             verification.save()
 
-            # --- ✅ Auto-update user & driver_profile after successful verification ---
+            # --- UPDATE USER & DRIVER PROFILE IF VERIFIED ---
             if verification.verification_status == "Verified":
-                # Update user field
                 if hasattr(self.request.user, 'is_driver_verified'):
                     self.request.user.is_driver_verified = True
                     self.request.user.save()
 
-                # Update driver profile
                 driver_profile = getattr(self.request.user, 'driver_profile', None)
                 if driver_profile:
                     driver_profile.is_driver_verified = True
                     driver_profile.save()
 
+            # LOGGING
             VerificationLog.objects.create(
                 verification=verification,
                 action="Verification Passed" if verification.verification_status == "Verified" else "Verification Failed",

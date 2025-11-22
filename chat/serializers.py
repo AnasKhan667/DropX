@@ -20,7 +20,7 @@ class MessageSerializer(serializers.ModelSerializer):
     sender_id = serializers.UUIDField(source='sender.id', read_only=True)
     receiver = CustomUserSerializer(read_only=True)
     image = serializers.ImageField(required=False, allow_null=True, use_url=True)
-    # is_read automatically backend handle kare
+    # is_read automatically backend handle 
     class Meta:
         model = Message
         fields = ['message_id', 'sender_id', 'receiver', 'content', 'image', 'is_read', 'created_at']

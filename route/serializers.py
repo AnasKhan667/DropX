@@ -13,7 +13,7 @@ class RouteSerializer(serializers.ModelSerializer):
             'delivery_id',
             'delivery_id_uuid',
             'distance',
-            'path',
+            # 'path',
             'created_at',
             'updated_at'
         ]
@@ -21,7 +21,7 @@ class RouteSerializer(serializers.ModelSerializer):
             'route_id',
             'delivery_id',
             'distance',
-            'path',
+            # 'path',
             'created_at',
             'updated_at'
         ]

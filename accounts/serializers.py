@@ -18,31 +18,37 @@ class CustomUserSerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'is_staff', 'is_superuser', 'date_joined']
 
     def create(self, validated_data):
+        # Dummy request se license_number safely fetch karte hain
         request = self.context.get("request")
-        license_number = request.data.get('license_number') if request else None
+        license_number = getattr(request, 'data', {}).get('license_number') if request else None
 
         password = validated_data.pop('password')
         role = validated_data.get('role')
 
+        # User create
         user = CustomUser.objects.create_user(
             password=password,
             **validated_data
         )
 
-        # Promote to admin if role = Admin
+        # Admin role handle
         if role == 'Admin':
             user.is_staff = True
             user.is_superuser = True
             user.save()
 
-        # Create profile based on role
+        # Sender profile create
         if role in ['Sender', 'Both']:
             SenderProfile.objects.create(user=user)
 
+        # Driver profile create
         if role in ['Driver', 'Both']:
             if not license_number:
-                raise serializers.ValidationError("License number is required for Driver role.")
-            DriverProfile.objects.create(user=user, license_number=license_number,)
+                # ValidationError raise karte hain agar license missing ho
+                raise serializers.ValidationError({
+                    'license_number': 'License number is required for Driver role.'
+                })
+            DriverProfile.objects.create(user=user, license_number=license_number)
 
         return user
 
