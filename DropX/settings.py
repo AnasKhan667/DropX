@@ -1,16 +1,22 @@
 """
 Django settings for DropX project.
 """
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from pathlib import Path
 from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-qfqolopir^m8ki^6id!%-l$q6+=mj5&&-o@34(m2si#1_=ilg5'
+SECRET_KEY = os.getenv("SECRET_KEY")
 
-DEBUG = True
-ALLOWED_HOSTS = ['*']
+DEBUG = os.getenv("DEBUG") == "True"
+
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
+
 CORS_ALLOW_ALL_ORIGINS = True
 
 
@@ -110,10 +116,11 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [("127.0.0.1", 6379)],
+            "hosts": [(os.getenv("REDIS_HOST"), int(os.getenv("REDIS_PORT")))],
         },
     },
 }
+
 
 # Database
 DATABASES = {

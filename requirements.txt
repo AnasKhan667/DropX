@@ -28,3 +28,4 @@ channels
 channels_redis
 pytest==9.0.1
 pytest-django
+python-dotenv

@@ -32,6 +32,7 @@ redis = "*"
 daphne = "*"
 pytest = "*"
 pytest-django = "*"
+python-dotenv = "*"
 
 [dev-packages]
 
