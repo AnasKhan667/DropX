@@ -1,28 +1,20 @@
 """
 Django settings for DropX project.
 """
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
 
 from pathlib import Path
 from datetime import timedelta
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv("SECRET_KEY")
-
-DEBUG = os.getenv("DEBUG") == "True"
-
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "*").split(",")
+SECRET_KEY = "django-insecure-qfqolopir^m8ki^6id!%-l$q6+=mj5&&-o@34(m2si#1_=ilg5"
+DEBUG = True
+ALLOWED_HOSTS = ["*"]
 
 CORS_ALLOW_ALL_ORIGINS = True
 
-
-# Application definition
 INSTALLED_APPS = [
-    'corsheaders',  # ✅ Add at top for CORS
+    'corsheaders',  
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -82,7 +74,7 @@ SWAGGER_SETTINGS = {
 }
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',  # ✅ Add at top for CORS
+    'corsheaders.middleware.CorsMiddleware', 
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -116,13 +108,11 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [(os.getenv("REDIS_HOST"), int(os.getenv("REDIS_PORT")))],
+            "hosts": [("127.0.0.1", 6379)],
         },
     },
 }
 
-
-# Database
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
@@ -132,7 +122,6 @@ DATABASES = {
 
 AUTH_USER_MODEL = 'accounts.CustomUser'
 
-# JWT Config
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(days=365),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=365),
@@ -143,7 +132,6 @@ SIMPLE_JWT = {
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
 }
 
-# Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -151,29 +139,20 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# Internationalization
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# Static & Media
-STATIC_URL = 'static/'
-STATIC_ROOT = BASE_DIR / 'static'
+STATIC_URL = '/static/'
+STATICFILES_DIRS = []   # custom folder remove
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = BASE_DIR / "media"
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# ✅ CORS settings
-CORS_ALLOW_ALL_ORIGINS = True  # Allow all origins for development
-# For production, replace with:
-# CORS_ALLOWED_ORIGINS = [
-#     "http://localhost:3000",
-#     "http://192.168.1.5:3000",
-# ]
 
-# DropX/settings.py
 STRIPE_SECRET_KEY = 'sk_test_your_stripe_secret_key'
 STRIPE_PUBLISHABLE_KEY = 'pk_test_your_stripe_publishable_key'

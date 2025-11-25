@@ -24,8 +24,6 @@ class Delivery(models.Model):
     dropoff_address = models.JSONField()
     pickup_city = models.ForeignKey(City, on_delete=models.SET_NULL, null=True, related_name='pickup_deliveries')
     dropoff_city = models.ForeignKey(City, on_delete=models.SET_NULL, null=True, related_name='dropoff_deliveries')
-    delivery_date = models.DateField()
-    estimated_delivery_time = models.DateTimeField()
     total_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0.0)
     status = models.CharField(max_length=20, choices=DeliveryStatus.choices, default=DeliveryStatus.PENDING)
     created_at = models.DateTimeField(auto_now_add=True)

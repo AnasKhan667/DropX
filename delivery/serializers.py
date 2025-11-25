@@ -10,9 +10,9 @@ from django.utils import timezone
 
 
 class DimensionsSerializer(serializers.Serializer):
-    length = serializers.FloatField()
-    width = serializers.FloatField()
-    height = serializers.FloatField()
+    length = serializers.FloatField(required=False)
+    width = serializers.FloatField(required=False)
+    height = serializers.FloatField(required=False)
 
 
 class PackageSerializer(serializers.ModelSerializer):
@@ -36,7 +36,7 @@ class AddressSerializer(serializers.Serializer):
     address_line = serializers.CharField()
     city = serializers.CharField()
     state = serializers.CharField(allow_blank=True)
-    country = serializers.CharField()
+    country = serializers.CharField(allow_blank=True)
     latitude = serializers.FloatField()
     longitude = serializers.FloatField()
 
@@ -46,13 +46,14 @@ class DeliveryWriteSerializer(serializers.ModelSerializer):
     dropoff_address = AddressSerializer()
     packages = PackageSerializer(many=True, write_only=True)
     total_cost = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    # delivery_date = serializers.DateField(required=False, allow_null=True)
 
     class Meta:
         model = Delivery
         fields = [
             'delivery_id', 'sender_id', 'driver_id', 'driver_post_id',
-            'pickup_address', 'dropoff_address', 'delivery_date',
-            'estimated_delivery_time', 'total_cost', 'status', 'packages',
+            'pickup_address', 'dropoff_address', 
+             'total_cost', 'status', 'packages',
         ]
         read_only_fields = ['delivery_id', 'sender_id', 'driver_id', ]
 
@@ -77,10 +78,13 @@ class DeliveryWriteSerializer(serializers.ModelSerializer):
         delivery.save()
         return delivery
 
-    def validate_delivery_date(self, value):
-        if value < timezone.now().date():
-            raise serializers.ValidationError("Delivery date must be in the future.")
-        return value
+    # def validate_delivery_date(self, value):
+    #         if value in ("", None):
+    #             return None  # empty string bhi None me convert
+    #         if value < timezone.now().date():
+    #             raise serializers.ValidationError("Delivery date must be in the future.")
+    #         return value
+
 
 
 class DeliveryReadSerializer(serializers.ModelSerializer):
@@ -102,7 +106,7 @@ class DeliveryReadSerializer(serializers.ModelSerializer):
             'delivery_id', 'sender_id', 'driver_id', 'driver_post_id',
             'pickup_address', 'dropoff_address',
             'pickup_city', 'dropoff_city',
-            'delivery_date', 'estimated_delivery_time', 'total_cost', 'status',
+            'total_cost', 'status',
             'created_at', 'updated_at', 'packages', 'logs', 'route', 
         ]
         read_only_fields = [
