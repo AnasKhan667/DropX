@@ -22,25 +22,30 @@ class ReviewSerializer(serializers.ModelSerializer):
         request = self.context['request']
         delivery = data.get('delivery_id')
 
-        # Must be delivery completed
+        # Delivery status check
         if delivery.status != "Delivered":
             raise serializers.ValidationError("You can only review completed deliveries.")
 
-        # Reviewer MUST be the sender for this delivery
-        if delivery.user != request.user:
-            raise serializers.ValidationError("You can only review deliveries you created.")
+        # Auto-link reviewer/reviewed based on correct fields
+        if request.user == delivery.sender_id:
+            # Sender reviewing driver
+            data['reviewer_id'] = request.user
+            data['reviewed_id'] = delivery.driver_post_id.user
+        elif request.user == delivery.driver_post_id.user:
+            # Driver reviewing sender
+            data['reviewer_id'] = request.user
+            data['reviewed_id'] = delivery.sender_id
+        else:
+            raise serializers.ValidationError("You are not allowed to review this delivery.")
 
-        # Reviewed user MUST be the driver
-        data['reviewer_id'] = request.user
-        data['reviewed_id'] = delivery.driver_post_id.user
-
-        # Rating must be 1-5
+        # Rating validation
         rating = data.get('rating')
-        if rating < 1 or rating > 5:
+        if rating is None or not (1 <= rating <= 5):
             raise serializers.ValidationError("Rating must be between 1 and 5.")
 
-        # Prevent duplicate review
+        # Duplicate check
         if Review.objects.filter(delivery_id=delivery, reviewer_id=request.user).exists():
             raise serializers.ValidationError("You have already reviewed this delivery.")
 
         return data
+
