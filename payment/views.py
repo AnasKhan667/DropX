@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 from .models import Payment
 from .serializers import PaymentSerializer
 from DropX.permissions import IsSender, IsVerifiedDriver
-from delivery.models import Delivery, DeliveryLog
+from delivery.models import Delivery, DeliveryLog, DeliveryStatus
 import logging
 import uuid
 from django.core.exceptions import ValidationError
@@ -102,9 +102,47 @@ class PaymentDetailView(generics.RetrieveUpdateDestroyAPIView):
                     comments="Driver confirmed manual payment."
                 )
                 # Optionally trigger delivery acceptance here
-                instance.delivery_id.status = 'Accepted'  # Assume Delivery has a status field; add if not
+                instance.delivery_id.status = DeliveryStatus.ASSIGNED  # Assume Delivery has a status field; add if not
                 instance.delivery_id.save()
 
+class CompletePaymentView(APIView):
+    permission_classes = [IsAuthenticated, IsVerifiedDriver]
+    authentication_classes = [JWTAuthentication]
+
+    def post(self, request, payment_id):
+        payment = get_object_or_404(Payment, payment_id=payment_id)
+
+        # Driver must own the delivery
+        if payment.delivery_id.driver_id != request.user:
+            return Response(
+                {"error": "Not allowed. This payment does not belong to your delivery."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        # Already completed?
+        if payment.payment_status == "Completed":
+            return Response({"message": "Payment already completed."}, status=200)
+
+        # Change status
+        payment.payment_status = "Completed"
+        payment.save()
+
+        # Update delivery status
+        delivery = payment.delivery_id
+        delivery.status = "Accepted"
+        delivery.save()
+
+        # Log entry
+        DeliveryLog.objects.create(
+            delivery=delivery,
+            action="Payment Completed",
+            comments=f"Driver {request.user.first_name} confirmed the payment."
+        )
+
+        return Response(
+            {"message": "Payment marked as completed successfully."},
+            status=status.HTTP_200_OK
+        )
 
 class RefundPaymentView(APIView):
     permission_classes = [IsAuthenticated, IsSender]
