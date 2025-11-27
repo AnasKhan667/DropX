@@ -19,7 +19,6 @@ logger = logging.getLogger(__name__)
 
 
 class DeliveryListCreateView(generics.ListCreateAPIView):
-    queryset = Delivery.objects.all()
     permission_classes = [IsAuthenticated, IsSender]
     authentication_classes = [JWTAuthentication]
 
@@ -28,8 +27,12 @@ class DeliveryListCreateView(generics.ListCreateAPIView):
             return DeliveryWriteSerializer
         return DeliveryReadSerializer
 
+    def get_queryset(self):
+        return Delivery.objects.filter(sender_id=self.request.user)
+
     def perform_create(self, serializer):
         serializer.save(sender_id=self.request.user)
+
 
 
 class DeliveryDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -110,6 +113,77 @@ class DeliveryRejectView(APIView):
         )
 
         return Response({"message": f"Delivery {delivery_id} rejected"}, status=status.HTTP_200_OK)
+    
+class DeliveryPickupView(APIView):
+    permission_classes = [IsAuthenticated, IsVerifiedDriver]
+    authentication_classes = [JWTAuthentication]
+
+    def post(self, request, delivery_id):
+        try:
+            delivery = Delivery.objects.get(delivery_id=delivery_id, status=DeliveryStatus.ASSIGNED)
+        except Delivery.DoesNotExist:
+            return Response({"error": "Delivery not found or not assigned"}, status=status.HTTP_404_NOT_FOUND)
+
+        if delivery.driver_id != request.user:
+            return Response({"error": "You can only manage your own deliveries."}, status=status.HTTP_403_FORBIDDEN)
+
+        delivery.status = DeliveryStatus.IN_TRANSIT
+        delivery.save()
+
+        DeliveryLog.objects.create(
+            delivery=delivery,
+            action="Delivery Picked Up",
+            comments=f"Picked up by {request.user.email}"
+        )
+        return Response({"message": f"Delivery {delivery_id} is now in transit"}, status=status.HTTP_200_OK)
+
+
+class DeliveryCompleteView(APIView):
+    permission_classes = [IsAuthenticated, IsVerifiedDriver]
+    authentication_classes = [JWTAuthentication]
+
+    def post(self, request, delivery_id):
+        try:
+            delivery = Delivery.objects.get(delivery_id=delivery_id, status=DeliveryStatus.IN_TRANSIT)
+        except Delivery.DoesNotExist:
+            return Response({"error": "Delivery not in transit"}, status=status.HTTP_404_NOT_FOUND)
+
+        if delivery.driver_id != request.user:
+            return Response({"error": "You can only complete your own deliveries."}, status=status.HTTP_403_FORBIDDEN)
+
+        delivery.status = DeliveryStatus.DELIVERED
+        delivery.save()
+
+        DeliveryLog.objects.create(
+            delivery=delivery,
+            action="Delivery Completed",
+            comments=f"Delivered by {request.user.email}"
+        )
+        return Response({"message": f"Delivery {delivery_id} marked as delivered"}, status=status.HTTP_200_OK)
+
+class DeliveryCancelView(APIView):
+    permission_classes = [IsAuthenticated, IsSender]
+    authentication_classes = [JWTAuthentication]
+
+    def post(self, request, delivery_id):
+        try:
+            delivery = Delivery.objects.get(delivery_id=delivery_id, sender_id=request.user)
+        except Delivery.DoesNotExist:
+            return Response({"error": "Delivery not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        if delivery.status not in [DeliveryStatus.PENDING, DeliveryStatus.ASSIGNED]:
+            return Response({"error": f"Cannot cancel delivery with status {delivery.status}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        delivery.status = DeliveryStatus.CANCELLED
+        delivery.save()
+
+        DeliveryLog.objects.create(
+            delivery=delivery,
+            action="Delivery Cancelled",
+            comments=f"Cancelled by {request.user.email}"
+        )
+
+        return Response({"message": f"Delivery {delivery_id} cancelled successfully"}, status=status.HTTP_200_OK)
 
 
 class CreateDeliveryWithCostView(generics.CreateAPIView):
@@ -154,4 +228,26 @@ class CreateDeliveryWithCostView(generics.CreateAPIView):
             delivery=delivery,
             action="Delivery Created",
             comments=f"Delivery created by {self.request.user.email}",
+        )
+
+class DriverPendingDeliveryListView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated, IsVerifiedDriver]
+    authentication_classes = [JWTAuthentication]
+    serializer_class = DeliveryReadSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+
+        # Driver ke posts fetch karo
+        driver_posts = user.driver_posts.all()  
+        start_cities = [post.start_city.name for post in driver_posts]
+        end_cities = [post.end_city.name for post in driver_posts]
+
+        # Sirf woh deliveries return karo:
+        # - still pending
+        # - city matches driver route
+        return Delivery.objects.filter(
+            status=DeliveryStatus.PENDING,
+            pickup_address__city__in=start_cities,
+            dropoff_address__city__in=end_cities
         )

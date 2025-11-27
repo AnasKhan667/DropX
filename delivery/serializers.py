@@ -76,7 +76,13 @@ class DeliveryWriteSerializer(serializers.ModelSerializer):
         total_weight = sum(Decimal(p['weight']) for p in packages_data)
         delivery.total_cost = total_weight * Decimal("0.5")  # example calculation
         delivery.save()
+
+        for package_data in packages_data:
+            Package.objects.create(delivery_id=delivery, **package_data)
+
         return delivery
+    
+
 
     # def validate_delivery_date(self, value):
     #         if value in ("", None):
