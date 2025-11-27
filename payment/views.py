@@ -11,6 +11,7 @@ from delivery.models import Delivery, DeliveryLog, DeliveryStatus
 import logging
 import uuid
 from django.core.exceptions import ValidationError
+from delivery.models import DeliveryStatus
 
 logger = logging.getLogger(__name__)
 
@@ -102,7 +103,7 @@ class PaymentDetailView(generics.RetrieveUpdateDestroyAPIView):
                     comments="Driver confirmed manual payment."
                 )
                 # Optionally trigger delivery acceptance here
-                instance.delivery_id.status = DeliveryStatus.ASSIGNED  # Assume Delivery has a status field; add if not
+                instance.delivery_id.status = DeliveryStatus.IN_TRANSIT  # Assume Delivery has a status field; add if not
                 instance.delivery_id.save()
 
 class CompletePaymentView(APIView):
@@ -129,7 +130,7 @@ class CompletePaymentView(APIView):
 
         # Update delivery status
         delivery = payment.delivery_id
-        delivery.status = "Accepted"
+        delivery.status = DeliveryStatus.IN_TRANSIT
         delivery.save()
 
         # Log entry
