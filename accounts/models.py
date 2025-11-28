@@ -41,12 +41,13 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     objects = CustomUserManager()
 
     class Meta:
-        constraints = [
-            models.UniqueConstraint(
-                fields=['first_name', 'last_name', 'phone_number'],
-                name='unique_first_last_phone'
-            )
-        ]
+        pass
+        # constraints = [
+        #     models.UniqueConstraint(
+        #         fields=['first_name', 'last_name', 'phone_number'],
+        #         name='unique_first_last_phone'
+        #     )
+        # ]
 
 
     def __str__(self):
