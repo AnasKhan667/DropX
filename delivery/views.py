@@ -6,6 +6,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from .models import Delivery, DeliveryStatus, DeliveryLog, Package
 from .serializers import DeliveryReadSerializer, DeliveryWriteSerializer
 from notification.models import Notification
+from rest_framework import generics, filters
 
 from django.utils import timezone
 from route.models import Route
@@ -21,6 +22,10 @@ logger = logging.getLogger(__name__)
 class DeliveryListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated, IsSender]
     authentication_classes = [JWTAuthentication]
+    serializer_class = DeliveryReadSerializer
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = ['created_at', 'total_cost', 'status']
+    ordering = ['-created_at']
 
     def get_serializer_class(self):
         if self.request.method == "POST":
@@ -234,20 +239,40 @@ class DriverPendingDeliveryListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated, IsVerifiedDriver]
     authentication_classes = [JWTAuthentication]
     serializer_class = DeliveryReadSerializer
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = ['created_at', 'total_cost', 'status']
+    ordering = ['-created_at']
 
     def get_queryset(self):
         user = self.request.user
 
-        # Driver ke posts fetch karo
-        driver_posts = user.driver_posts.all()  
-        start_cities = [post.start_city.name for post in driver_posts]
-        end_cities = [post.end_city.name for post in driver_posts]
+        # Get all driver posts for this driver
+        driver_posts = user.driver_posts.all()
 
-        # Sirf woh deliveries return karo:
-        # - still pending
-        # - city matches driver route
+        # Return ALL deliveries connected to ANY of the driver's posts
         return Delivery.objects.filter(
-            status=DeliveryStatus.PENDING,
-            pickup_address__city__in=start_cities,
-            dropoff_address__city__in=end_cities
-        )
+            driver_post_id__in=driver_posts
+        ).order_by('-created_at')
+
+
+# class DriverPendingDeliveryListView(generics.ListAPIView):
+#     permission_classes = [IsAuthenticated, IsVerifiedDriver]
+#     authentication_classes = [JWTAuthentication]
+#     serializer_class = DeliveryReadSerializer
+
+#     def get_queryset(self):
+#         user = self.request.user
+
+#         # Driver ke posts fetch karo
+#         driver_posts = user.driver_posts.all()  
+#         start_cities = [post.start_city.name for post in driver_posts]
+#         end_cities = [post.end_city.name for post in driver_posts]
+
+#         # Sirf woh deliveries return karo:
+#         # - still pending
+#         # - city matches driver route
+#         return Delivery.objects.filter(
+#             status=DeliveryStatus.PENDING,
+#             pickup_address__city__in=start_cities,
+#             dropoff_address__city__in=end_cities
+#         )
