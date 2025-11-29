@@ -14,7 +14,7 @@ class Notification(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Notification {self.notification_id} for {self.user_id.email}"
+        return f"Notifications For {self.user_id.email}"
 
     class Meta:
         indexes = [

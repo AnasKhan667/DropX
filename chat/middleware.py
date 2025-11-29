@@ -4,7 +4,7 @@ from channels.middleware import BaseMiddleware
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import AccessToken
 
-print("🔹 JWT Middleware Loaded!")  # middleware load hone ka proof
+print("JWT Middleware Loaded!")  
 
 User = get_user_model()
 
@@ -16,7 +16,7 @@ class JWTAuthMiddleware(BaseMiddleware):
 
         token = query_string.get("token")
         if token:
-            print("🔹 Token mil gaya:", token[0])
+            # print("🔹 Token mil gaya:", token[0])
             try:
                 access_token = AccessToken(token[0])
                 print("✅ Token valid:", access_token)

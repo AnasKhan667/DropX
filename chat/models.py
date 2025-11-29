@@ -9,7 +9,7 @@ class ChatRoom(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"ChatRoom {self.chat_room_id} for Delivery {self.delivery.delivery_id}"
+        return f"ChatRoom Created For Delivery {self.delivery.pickup_city} To {self.delivery.dropoff_city}"
 
 class Message(models.Model):
     message_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -22,4 +22,4 @@ class Message(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Message {self.message_id} in ChatRoom {self.chat_room.chat_room_id}"
+        return f"Message For {self.sender} From Driver {self.receiver} In ChatRoom "

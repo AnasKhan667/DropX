@@ -41,7 +41,7 @@ class Payment(models.Model):
     driver_easypaisa_phone = models.CharField(max_length=15, null=True, blank=True)  # Copied from driver on creation
 
     def __str__(self):
-        return f"Payment {self.payment_id} for Delivery {self.delivery_id.delivery_id}"
+        return f"Payment Of {self.amount} For Delivery {self.delivery_id.pickup_city} To {self.delivery_id.dropoff_city}"
 
     def clean(self):
         if self.amount <= 0:

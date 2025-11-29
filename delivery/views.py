@@ -25,7 +25,7 @@ class DeliveryListCreateView(generics.ListCreateAPIView):
     serializer_class = DeliveryReadSerializer
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ['created_at', 'total_cost', 'status']
-    ordering = ['-created_at']
+    # ordering = ['-created_at']
 
     def get_serializer_class(self):
         if self.request.method == "POST":
@@ -241,7 +241,7 @@ class DriverPendingDeliveryListView(generics.ListAPIView):
     serializer_class = DeliveryReadSerializer
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ['created_at', 'total_cost', 'status']
-    ordering = ['-created_at']
+    # ordering = ['-created_at']
 
     def get_queryset(self):
         user = self.request.user

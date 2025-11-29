@@ -25,7 +25,7 @@ class DriverVerification(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"Verification {self.verification_id} for {self.user.email}"
+        return f"Verification {self.full_name} For {self.user.email}"
 
 
 class VerificationLog(models.Model):

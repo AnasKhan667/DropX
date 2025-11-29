@@ -38,7 +38,7 @@ class Delivery(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"Delivery {self.delivery_id} from {self.sender_id.email}"
+        return f"Delivery created For {self.pickup_city} To {self.dropoff_city} From {self.sender_id.email}"
 
     def clean(self):
         if self.delivery_date < timezone.now().date():

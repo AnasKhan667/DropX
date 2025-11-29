@@ -23,7 +23,13 @@ def create_chat_room_on_payment(sender, instance, created, **kwargs):
                 receiver_user = instance.delivery_id.driver_post_id.user  # Driver user
 
             # ✅ Initial message text
-            initial_content = f"{instance.payment_method} payment of {instance.amount} pending for delivery {instance.delivery_id.delivery_id}. "
+            # initial_content = f"{instance.payment_method} payment of {instance.amount} pending for delivery {instance.delivery_id.delivery_id}. "
+            initial_content = (
+
+                 f"{instance.payment_method} payment of {instance.amount} pending for delivery "
+                 f"from {instance.delivery_id.pickup_city} to {instance.delivery_id.dropoff_city}."
+                )
+
             if instance.payment_method == 'Cash':
                 initial_content += "Please discuss terms."
             elif instance.payment_method == 'EasyPaisa':

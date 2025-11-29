@@ -52,7 +52,7 @@ class DriverPost(models.Model):
         ]
 
     def __str__(self):
-        return f"Post {self.post_id} by {self.user.email}"
+        return f"Post Craeted By Verified Driver {self.user.email} From {self.start_city} To {self.end_city} "
 
     def clean(self):
         if self.available_capacity <= 0 or self.max_weight <= 0:
