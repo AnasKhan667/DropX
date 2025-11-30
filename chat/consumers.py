@@ -36,6 +36,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
             print(f"Invalid JSON: {text_data}")
             return
 
+        # Handle ping/pong for keepalive
+        if data.get('type') == 'ping':
+            await self.send(json.dumps({'type': 'pong'}))
+            return
+
         content = data.get('content', '').strip()
         if not content:
             await self.send(json.dumps({"error": "Missing 'content' field"}))
@@ -53,27 +58,47 @@ class ChatConsumer(AsyncWebsocketConsumer):
 
         message = await self.save_message(sender, receiver, content)
 
-        await self.channel_layer.group_send(
-            self.room_group_name,
-            {
-                'type': 'chat_message',
+        try:
+            await self.channel_layer.group_send(
+                self.room_group_name,
+                {
+                    'type': 'chat_message',
+                    'message_id': str(message.message_id),
+                    'content': content,
+                    'sender_id': str(sender.id),
+                    'receiver_id': str(receiver.id),
+                    'created_at': message.created_at.isoformat(),
+                }
+            )
+            print(f"✅ Message broadcast to group: {self.room_group_name}")
+        except Exception as e:
+            print(f"❌ Channel layer error (Redis may not be running): {e}")
+            # Still send to the current connection (sender)
+            await self.chat_message({
                 'message_id': str(message.message_id),
                 'content': content,
                 'sender_id': str(sender.id),
                 'receiver_id': str(receiver.id),
                 'created_at': message.created_at.isoformat(),
-            }
-        )
+            })
 
     async def chat_message(self, event):
-        await self.send(text_data=json.dumps({
+        message_data = {
             'message_id': event['message_id'],
             'content': event['content'],
             'sender_id': event['sender_id'],
             'receiver_id': event['receiver_id'],
             'created_at': event['created_at'],
+        }
+        # Include image if present
+        if event.get('image'):
+            message_data['image'] = event['image']
+        
+        await self.send(text_data=json.dumps({
+            'type': 'chat_message',
+            'message': message_data
         }))
-        print(f"Broadcasted: {event['content']}")
+        print(f"Broadcasted: {event.get('content') or 'Image message'}")
 
     @database_sync_to_async
     def is_valid_user(self):

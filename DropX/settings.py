@@ -104,14 +104,31 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'DropX.wsgi.application'
 
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [("127.0.0.1", 6379)],
+# Channel Layers Configuration
+# For production: Use Redis (requires Redis server running on port 6379)
+# For development: Falls back to InMemoryChannelLayer if Redis unavailable
+
+import os
+USE_REDIS = os.environ.get('USE_REDIS', 'true').lower() == 'true'
+
+if USE_REDIS:
+    # Try Redis first (for production or when Redis is running)
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [("127.0.0.1", 6379)],
+            },
         },
-    },
-}
+    }
+else:
+    # InMemoryChannelLayer for development (single-process only)
+    # WARNING: This only works within a single process - not for multi-worker deployment
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+        },
+    }
 
 DATABASES = {
     'default': {

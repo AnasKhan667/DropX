@@ -27,9 +27,6 @@ def auto_expire_posts():
         post.status = "Expired"
         post.save()
 
-# ---------------------------
-#  CITY UTIL
-# ---------------------------
 def get_or_create_city(city_data):
     city, _ = City.objects.get_or_create(
         name=city_data.get("name"),
