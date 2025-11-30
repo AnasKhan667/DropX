@@ -159,6 +159,7 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = CustomUser.objects.all()
     serializer_class = CustomUserSerializer
     permission_classes = [IsAuthenticated]
+    lookup_field = 'id'
 
     @swagger_auto_schema(
         manual_parameters=[
@@ -179,11 +180,28 @@ class AuditLogListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
 
 class LogoutView(APIView):
+    """Generic logout for any authenticated user"""
     permission_classes = [IsAuthenticated]
 
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['refresh'],
+            properties={
+                'refresh': openapi.Schema(type=openapi.TYPE_STRING, description='Refresh token to blacklist'),
+            }
+        ),
+        responses={
+            205: 'Logout successful',
+            400: 'Invalid token'
+        }
+    )
     def post(self, request):
         try:
-            refresh_token = request.data["refresh"]
+            refresh_token = request.data.get("refresh")
+            if not refresh_token:
+                return Response({"error": "Refresh token is required."}, status=status.HTTP_400_BAD_REQUEST)
+            
             token = RefreshToken(refresh_token)
             token.blacklist()
             AuditLog.objects.create(
@@ -194,4 +212,92 @@ class LogoutView(APIView):
             return Response({"detail": "Logout successful."}, status=status.HTTP_205_RESET_CONTENT)
         except Exception as e:
             logger.error(f"Logout failed for {request.user.email}: {str(e)}")
+            return Response({"error": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class DriverLogoutView(APIView):
+    """Logout endpoint specifically for drivers"""
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['refresh'],
+            properties={
+                'refresh': openapi.Schema(type=openapi.TYPE_STRING, description='Refresh token to blacklist'),
+            }
+        ),
+        responses={
+            205: 'Driver logout successful',
+            400: 'Invalid token',
+            403: 'Not a driver'
+        }
+    )
+    def post(self, request):
+        user = request.user
+        
+        # Verify user is a driver
+        if user.role not in ['Driver', 'Both']:
+            return Response({"error": "Not a driver account."}, status=status.HTTP_403_FORBIDDEN)
+        
+        try:
+            refresh_token = request.data.get("refresh")
+            if not refresh_token:
+                return Response({"error": "Refresh token is required."}, status=status.HTTP_400_BAD_REQUEST)
+            
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            
+            AuditLog.objects.create(
+                user=user,
+                action='Driver Logout',
+                details=f"Driver {user.email} logged out successfully"
+            )
+            return Response({"detail": "Driver logout successful."}, status=status.HTTP_205_RESET_CONTENT)
+        except Exception as e:
+            logger.error(f"Driver logout failed for {user.email}: {str(e)}")
+            return Response({"error": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class SenderLogoutView(APIView):
+    """Logout endpoint specifically for senders"""
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['refresh'],
+            properties={
+                'refresh': openapi.Schema(type=openapi.TYPE_STRING, description='Refresh token to blacklist'),
+            }
+        ),
+        responses={
+            205: 'Sender logout successful',
+            400: 'Invalid token',
+            403: 'Not a sender'
+        }
+    )
+    def post(self, request):
+        user = request.user
+        
+        # Verify user is a sender
+        if user.role not in ['Sender', 'Both']:
+            return Response({"error": "Not a sender account."}, status=status.HTTP_403_FORBIDDEN)
+        
+        try:
+            refresh_token = request.data.get("refresh")
+            if not refresh_token:
+                return Response({"error": "Refresh token is required."}, status=status.HTTP_400_BAD_REQUEST)
+            
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+            
+            AuditLog.objects.create(
+                user=user,
+                action='Sender Logout',
+                details=f"Sender {user.email} logged out successfully"
+            )
+            return Response({"detail": "Sender logout successful."}, status=status.HTTP_205_RESET_CONTENT)
+        except Exception as e:
+            logger.error(f"Sender logout failed for {user.email}: {str(e)}")
             return Response({"error": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)

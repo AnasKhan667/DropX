@@ -52,11 +52,11 @@ class DriverPost(models.Model):
         ]
 
     def __str__(self):
-        return f"Post Craeted By Verified Driver {self.user.email} From {self.start_city} To {self.end_city} "
+        return f"Post Created By Verified Driver {self.user.email} From {self.start_city} To {self.end_city}"
 
     def clean(self):
-        if self.available_capacity <= 0 or self.max_weight <= 0:
-            raise ValidationError("Capacity and weight must be positive.")
+        if self.max_weight <= 0:
+            raise ValidationError("Max weight must be positive.")
         if self.departure_date < timezone.now().date():
             raise ValidationError("Departure date cannot be in the past.")
 

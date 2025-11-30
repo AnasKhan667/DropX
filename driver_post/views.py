@@ -3,6 +3,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.filters import OrderingFilter
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import DriverPost, City, PostLog
 from .serializers import DriverPostSerializer, CitySerializer, PostLogSerializer, DriverPostUpdateSerializer
@@ -18,14 +19,12 @@ MAX_USERS_PER_POST = 3  # max allowed senders per post
 
 
 def auto_expire_posts():
+    """Bulk update expired posts in a single query"""
     today = timezone.now().date()
-    expired_posts = DriverPost.objects.filter(
+    DriverPost.objects.filter(
         departure_date__lt=today,
         status__in=["Active", "Booked"]
-    )
-    for post in expired_posts:
-        post.status = "Expired"
-        post.save()
+    ).update(status="Expired")
 
 def get_or_create_city(city_data):
     city, _ = City.objects.get_or_create(
@@ -44,8 +43,10 @@ class DriverPostListCreateView(generics.ListCreateAPIView):
     queryset = DriverPost.objects.all()
     serializer_class = DriverPostSerializer
     authentication_classes = [JWTAuthentication]
-    filter_backends = [DjangoFilterBackend]
+    filter_backends = [DjangoFilterBackend, OrderingFilter]
     filterset_fields = ['start_city__name', 'end_city__name', 'departure_date', 'status']
+    ordering_fields = ['created_at', 'departure_date', 'max_weight']
+    ordering = ['-created_at']  # Default: most recent first
 
     def get_permissions(self):
         if self.request.method == 'POST':
@@ -63,8 +64,8 @@ class DriverPostListCreateView(generics.ListCreateAPIView):
     def get_queryset(self):
         auto_expire_posts()
         if self.request.user.role == 'driver':
-            return DriverPost.objects.filter(user=self.request.user)
-        return DriverPost.objects.filter(status__in=['Active', 'Booked'])
+            return DriverPost.objects.filter(user=self.request.user).order_by('-created_at')
+        return DriverPost.objects.filter(status__in=['Active', 'Booked']).order_by('-created_at')
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data, context={'request': request})
@@ -142,11 +143,11 @@ class PostLogListView(generics.ListAPIView):
 
     def get_queryset(self):
         auto_expire_posts()
-        return PostLog.objects.filter(post__user=self.request.user)
+        return PostLog.objects.filter(post__user=self.request.user).order_by('-timestamp')
 
 
 class CityListCreateView(generics.ListCreateAPIView):
-    queryset = City.objects.all()
+    queryset = City.objects.all().order_by('name')  # Alphabetical order
     serializer_class = CitySerializer
     permission_classes = [IsAuthenticated]
 
