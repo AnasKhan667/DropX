@@ -24,7 +24,6 @@ class ChatRoomListCreateView(generics.ListCreateAPIView):
         if user.role.lower() == 'sender':
             return ChatRoom.objects.filter(delivery__sender_id=user)
         elif user.role.lower() == 'driver':
-            # Include chat rooms where driver has messages or accepted delivery
             return ChatRoom.objects.filter(
                 Q(delivery__driver_post_id__user=user) |
                 Q(messages__receiver_id=user.id)
@@ -44,7 +43,7 @@ class MessageListCreateView(generics.ListCreateAPIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def get_queryset(self):
-        chat_room_id = self.kwargs.get('chat_room_id')  # URL se fetch
+        chat_room_id = self.kwargs.get('chat_room_id') 
         if not chat_room_id:
             return Message.objects.none()
         try:
@@ -57,13 +56,12 @@ class MessageListCreateView(generics.ListCreateAPIView):
             return Message.objects.none()
 
     def perform_create(self, serializer):
-        chat_room_id = self.kwargs.get('chat_room_id')  # path param se fetch
+        chat_room_id = self.kwargs.get('chat_room_id') 
         chat_room = ChatRoom.objects.get(chat_room_id=chat_room_id)
         user = self.request.user
 
-        # Automatically set receiver based on sender/driver
         if user == chat_room.delivery.sender_id:
-            receiver = chat_room.delivery.driver_post_id.user  # driver
+            receiver = chat_room.delivery.driver_post_id.user 
         else:
             receiver = chat_room.delivery.sender_id
 

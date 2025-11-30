@@ -12,22 +12,18 @@ logger = logging.getLogger(__name__)
 def create_chat_room_on_payment(sender, instance, created, **kwargs):
     if created and instance.payment_status == 'Pending':
         try:
-            # ✅ Chat room create / get
             chat_room, room_created = ChatRoom.objects.get_or_create(delivery=instance.delivery_id)
             if room_created:
                 logger.info(f"ChatRoom {chat_room.chat_room_id} created for payment {instance.payment_id}")
 
-            # ✅ Determine receiver (driver)
             receiver_user = None
             if instance.delivery_id.driver_post_id:
                 receiver_user = instance.delivery_id.driver_post_id.user  # Driver user
 
-            # ✅ Initial message text
-            # initial_content = f"{instance.payment_method} payment of {instance.amount} pending for delivery {instance.delivery_id.delivery_id}. "
             initial_content = (
 
                  f"{instance.payment_method} payment of {instance.amount} pending for delivery "
-                 f"from {instance.delivery_id.pickup_city} to {instance.delivery_id.dropoff_city}."
+                 f"from {instance.delivery_id.pickup_city} To {instance.delivery_id.dropoff_city}."
                 )
 
             if instance.payment_method == 'Cash':
@@ -35,7 +31,6 @@ def create_chat_room_on_payment(sender, instance, created, **kwargs):
             elif instance.payment_method == 'EasyPaisa':
                 initial_content += f"Sender: Send to {instance.driver_easypaisa_phone}. Confirm here."
 
-            # ✅ Create message
             Message.objects.create(
                 chat_room=chat_room,
                 sender=instance.user_id,
@@ -44,7 +39,6 @@ def create_chat_room_on_payment(sender, instance, created, **kwargs):
                 created_at=timezone.now()
             )
 
-            # ✅ Create notification
             Notification.objects.create(
                 user_id=receiver_user,
                 delivery_id=instance.delivery_id,
