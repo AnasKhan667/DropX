@@ -7,8 +7,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
-from .models import CustomUser, AuditLog
-from .serializers import CustomUserSerializer, AuditLogSerializer
+from .models import CustomUser, SenderProfile, AuditLog
+from .serializers import CustomUserSerializer, SenderProfileSerializer, AuditLogSerializer
 import logging
 
 logger = logging.getLogger(__name__)
@@ -301,3 +301,29 @@ class SenderLogoutView(APIView):
         except Exception as e:
             logger.error(f"Sender logout failed for {user.email}: {str(e)}")
             return Response({"error": "Invalid token."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class SenderDetailsView(APIView):
+    """Get sender profile details for authenticated sender"""
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        responses={
+            200: SenderProfileSerializer,
+            403: 'Not a sender account',
+            404: 'Sender profile not found'
+        }
+    )
+    def get(self, request):
+        user = request.user
+        
+        # Verify user is a sender
+        if user.role not in ['Sender', 'Both']:
+            return Response({"error": "Not a sender account."}, status=status.HTTP_403_FORBIDDEN)
+        
+        try:
+            sender_profile = SenderProfile.objects.select_related('user').get(user=user)
+            serializer = SenderProfileSerializer(sender_profile)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except SenderProfile.DoesNotExist:
+            return Response({"error": "Sender profile not found."}, status=status.HTTP_404_NOT_FOUND)

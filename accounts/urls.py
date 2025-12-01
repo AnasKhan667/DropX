@@ -17,6 +17,7 @@ urlpatterns = [
     path('sender-register/', views.SenderRegisterView.as_view(), name='sender-register'),
     path('sender-login/', views.SenderLoginView.as_view(), name='sender-login'),
     path('sender-logout/', views.SenderLogoutView.as_view(), name='sender-logout'),
+    path('sender-details/', views.SenderDetailsView.as_view(), name='sender-details'),
     
     # Generic logout (works for any role)
     path('logout/', views.LogoutView.as_view(), name='logout'),
