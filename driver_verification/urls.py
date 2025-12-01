@@ -1,6 +1,8 @@
 from django.urls import path
 from .views import DriverVerificationListCreateView, VerificationLogListView
 
+app_name = 'driver_verification'
+
 urlpatterns = [
     path('verifications/', DriverVerificationListCreateView.as_view(), name='driver-verification'),
     path('verification-logs/', VerificationLogListView.as_view(), name='verification-logs'),

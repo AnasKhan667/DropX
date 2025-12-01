@@ -1,7 +1,7 @@
 from rest_framework import generics
 from .models import Review
 from .serializers import ReviewSerializer
-from DropX.permissions import IsSender
+from DropX.permissions import IsSender, IsDriver
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 class ReviewCreateView(generics.CreateAPIView):
@@ -22,3 +22,13 @@ class ReviewDetailView(generics.RetrieveAPIView):
     lookup_field = "review_id"
     permission_classes = [IsSender]
     authentication_classes = [JWTAuthentication]
+
+
+class DriverReviewsListView(generics.ListAPIView):
+    """Driver can see all reviews received for their deliveries"""
+    serializer_class = ReviewSerializer
+    permission_classes = [IsDriver]
+    authentication_classes = [JWTAuthentication]
+
+    def get_queryset(self):
+        return Review.objects.filter(reviewed_id=self.request.user).order_by('-created_at')

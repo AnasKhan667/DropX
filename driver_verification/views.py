@@ -25,6 +25,15 @@ class DriverVerificationListCreateView(generics.ListCreateAPIView):
     parser_classes = [MultiPartParser, FormParser]
 
     def perform_create(self, serializer):
+        # Check if user already has a pending or verified verification
+        existing = DriverVerification.objects.filter(
+            user=self.request.user,
+            verification_status__in=["Pending", "Verified"]
+        ).exists()
+        if existing:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError("You already have a pending or approved verification request.")
+        
         verification = serializer.save(user=self.request.user)
 
         try:
@@ -97,7 +106,7 @@ class DriverVerificationListCreateView(generics.ListCreateAPIView):
 
                 verification.full_name = name
 
-                # FINAL DECISION
+                # FINAL DECISION - Both CNIC number and Name must be extracted
                 if verification.cnic_number and verification.full_name:
                     verification.document_verification_status = True
                     verification.verification_status = "Verified"
@@ -105,7 +114,13 @@ class DriverVerificationListCreateView(generics.ListCreateAPIView):
                 else:
                     verification.document_verification_status = False
                     verification.verification_status = "Rejected"
-                    verification.failure_reason = "CNIC details could not be extracted properly."
+                    # Specific failure reason
+                    missing = []
+                    if not verification.cnic_number:
+                        missing.append("CNIC number")
+                    if not verification.full_name:
+                        missing.append("Name")
+                    verification.failure_reason = f"Could not extract {' and '.join(missing)} from CNIC image. Please upload a clearer image."
 
             else:
                 verification.verification_status = "Rejected"
@@ -113,12 +128,8 @@ class DriverVerificationListCreateView(generics.ListCreateAPIView):
 
             verification.save()
 
-            # --- UPDATE USER & DRIVER PROFILE IF VERIFIED ---
+            # --- UPDATE DRIVER PROFILE IF VERIFIED ---
             if verification.verification_status == "Verified":
-                if hasattr(self.request.user, 'is_driver_verified'):
-                    self.request.user.is_driver_verified = True
-                    self.request.user.save()
-
                 driver_profile = getattr(self.request.user, 'driver_profile', None)
                 if driver_profile:
                     driver_profile.is_driver_verified = True
@@ -158,7 +169,10 @@ class DriverVerificationListCreateView(generics.ListCreateAPIView):
 
 
 class VerificationLogListView(generics.ListAPIView):
-    queryset = VerificationLog.objects.all()
     serializer_class = VerificationLogSerializer
     permission_classes = [IsDriver]
     authentication_classes = [JWTAuthentication]
+
+    def get_queryset(self):
+        # Only return logs for verifications belonging to the current user
+        return VerificationLog.objects.filter(verification__user=self.request.user).order_by('-timestamp')
