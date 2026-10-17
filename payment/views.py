@@ -4,14 +4,14 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.shortcuts import get_object_or_404
+from django.core.exceptions import ValidationError
+import logging
+import uuid
+
 from .models import Payment
 from .serializers import PaymentSerializer
 from DropX.permissions import IsSender, IsVerifiedDriver
 from delivery.models import Delivery, DeliveryLog, DeliveryStatus
-import logging
-import uuid
-from django.core.exceptions import ValidationError
-from delivery.models import DeliveryStatus
 
 logger = logging.getLogger(__name__)
 
@@ -48,9 +48,10 @@ class PaymentCreateView(generics.CreateAPIView):
         # Pull driver's EasyPaisa phone if method is EasyPaisa
         driver_easypaisa_phone = None
         if payment_method == 'EasyPaisa':
-            if not delivery.driver_id or not delivery.driver_id.easypaisa_phone:
+            driver_profile = getattr(delivery.driver_id, 'driver_profile', None) if delivery.driver_id else None
+            if not driver_profile or not driver_profile.easypaisa_phone:
                 raise ValidationError("Driver has no EasyPaisa phone registered.")
-            driver_easypaisa_phone = delivery.driver_id.easypaisa_phone
+            driver_easypaisa_phone = driver_profile.easypaisa_phone
 
         try:
             payment = serializer.save(

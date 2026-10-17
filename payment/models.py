@@ -1,8 +1,8 @@
 from django.db import models
 import uuid
 from django.core.exceptions import ValidationError
+from accounts.models import CustomUser, DriverProfile
 from delivery.models import Delivery, DeliveryLog
-from accounts.models import CustomUser
 
 
 class Payment(models.Model):
@@ -63,8 +63,7 @@ class Payment(models.Model):
                 elif hasattr(driver, "phone_number") and driver.phone_number:
                     self.driver_easypaisa_phone = driver.phone_number
             else:
-                # 2️⃣ Driver abhi assign nahi hua → koi available driver ka EasyPaisa number pick karo
-                from accounts.models import DriverProfile
+                # Driver not yet assigned — pick any available driver with EasyPaisa
                 random_driver = DriverProfile.objects.filter(easypaisa_phone__isnull=False).first()
                 if random_driver:
                     self.driver_easypaisa_phone = random_driver.easypaisa_phone

@@ -37,7 +37,9 @@ class ChatRoomListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         delivery = Delivery.objects.get(delivery_id=serializer.validated_data['delivery']['delivery_id'])
-        if self.request.user not in [delivery.sender_id, delivery.driver_post_id.user]:
+        driver_post_user = delivery.driver_post_id.user if delivery.driver_post_id else None
+        allowed_users = [delivery.sender_id, driver_post_user]
+        if self.request.user not in allowed_users:
             raise PermissionDenied("You must be part of the delivery.")
         serializer.save()
 
@@ -77,7 +79,13 @@ class MessageListCreateView(generics.ListCreateAPIView):
         user = self.request.user
 
         if user == chat_room.delivery.sender_id:
-            receiver = chat_room.delivery.driver_post_id.user 
+            # Sender is messaging the driver — prefer direct assignment, fall back to post owner
+            if chat_room.delivery.driver_id:
+                receiver = chat_room.delivery.driver_id
+            elif chat_room.delivery.driver_post_id:
+                receiver = chat_room.delivery.driver_post_id.user
+            else:
+                receiver = None
         else:
             receiver = chat_room.delivery.sender_id
 

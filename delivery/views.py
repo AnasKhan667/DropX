@@ -1,20 +1,19 @@
-from rest_framework import generics, status
+from rest_framework import generics, status, filters
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.authentication import JWTAuthentication
+from django.db import models
+from django.utils import timezone
+from decimal import Decimal
+import requests
+import logging
+
 from .models import Delivery, DeliveryStatus, DeliveryLog, Package
 from .serializers import DeliveryReadSerializer, DeliveryWriteSerializer
 from notification.models import Notification
-from rest_framework import generics, filters
-
-from django.utils import timezone
 from route.models import Route
-import requests
 from DropX.permissions import IsSender, IsVerifiedDriver
-import logging
-from decimal import Decimal
-from django.db import models
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +24,6 @@ class DeliveryListCreateView(generics.ListCreateAPIView):
     serializer_class = DeliveryReadSerializer
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ['created_at', 'total_cost', 'status']
-    # ordering = ['-created_at']
 
     def get_serializer_class(self):
         if self.request.method == "POST":
@@ -37,7 +35,6 @@ class DeliveryListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         serializer.save(sender_id=self.request.user)
-
 
 
 class DeliveryDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -62,8 +59,17 @@ class DeliveryAcceptView(APIView):
         except Delivery.DoesNotExist:
             return Response({"error": "Delivery not found or not pending"}, status=status.HTTP_404_NOT_FOUND)
 
+        if not delivery.driver_post_id:
+            return Response(
+                {"error": "This delivery has no associated driver post."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         if delivery.driver_post_id.user != request.user:
-            return Response({"error": "You can only manage deliveries for your own posts."}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {"error": "You can only manage deliveries for your own posts."},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         total_weight = sum(p.weight for p in delivery.packages.all())
         used_weight = sum(
@@ -74,11 +80,19 @@ class DeliveryAcceptView(APIView):
             )
         )
         if total_weight + used_weight > delivery.driver_post_id.max_weight:
-            return Response({"error": "Total package weight exceeds remaining capacity."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Total package weight exceeds remaining capacity."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
-        if delivery.pickup_address.get('city') != delivery.driver_post_id.start_city.name \
-           or delivery.dropoff_address.get('city') != delivery.driver_post_id.end_city.name:
-            return Response({"error": "Pickup and dropoff cities must match driver post route."}, status=status.HTTP_400_BAD_REQUEST)
+        if (
+            delivery.pickup_address.get('city') != delivery.driver_post_id.start_city.name
+            or delivery.dropoff_address.get('city') != delivery.driver_post_id.end_city.name
+        ):
+            return Response(
+                {"error": "Pickup and dropoff cities must match driver post route."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         delivery.status = DeliveryStatus.ASSIGNED
         delivery.driver_id = request.user
@@ -105,9 +119,11 @@ class DeliveryRejectView(APIView):
             return Response({"error": "Delivery not found or not pending"}, status=status.HTTP_404_NOT_FOUND)
 
         if delivery.driver_post_id.user != request.user:
-            return Response({"error": "You can only manage deliveries for your own posts."}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {"error": "You can only manage deliveries for your own posts."},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
-        # ⭐ FIX: Use CANCELLED instead of REJECTED
         delivery.status = DeliveryStatus.CANCELLED
         delivery.save()
 
@@ -116,9 +132,9 @@ class DeliveryRejectView(APIView):
             action="Delivery Rejected",
             comments=f"Delivery rejected by {request.user.email}"
         )
-
         return Response({"message": f"Delivery {delivery_id} rejected"}, status=status.HTTP_200_OK)
-    
+
+
 class DeliveryPickupView(APIView):
     permission_classes = [IsAuthenticated, IsVerifiedDriver]
     authentication_classes = [JWTAuthentication]
@@ -130,7 +146,10 @@ class DeliveryPickupView(APIView):
             return Response({"error": "Delivery not found or not assigned"}, status=status.HTTP_404_NOT_FOUND)
 
         if delivery.driver_id != request.user:
-            return Response({"error": "You can only manage your own deliveries."}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {"error": "You can only manage your own deliveries."},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         delivery.status = DeliveryStatus.IN_TRANSIT
         delivery.save()
@@ -154,7 +173,10 @@ class DeliveryCompleteView(APIView):
             return Response({"error": "Delivery not in transit"}, status=status.HTTP_404_NOT_FOUND)
 
         if delivery.driver_id != request.user:
-            return Response({"error": "You can only complete your own deliveries."}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {"error": "You can only complete your own deliveries."},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         delivery.status = DeliveryStatus.DELIVERED
         delivery.save()
@@ -165,6 +187,7 @@ class DeliveryCompleteView(APIView):
             comments=f"Delivered by {request.user.email}"
         )
         return Response({"message": f"Delivery {delivery_id} marked as delivered"}, status=status.HTTP_200_OK)
+
 
 class DeliveryCancelView(APIView):
     permission_classes = [IsAuthenticated, IsSender]
@@ -177,7 +200,10 @@ class DeliveryCancelView(APIView):
             return Response({"error": "Delivery not found"}, status=status.HTTP_404_NOT_FOUND)
 
         if delivery.status not in [DeliveryStatus.PENDING, DeliveryStatus.ASSIGNED]:
-            return Response({"error": f"Cannot cancel delivery with status {delivery.status}"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": f"Cannot cancel delivery with status {delivery.status}"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         delivery.status = DeliveryStatus.CANCELLED
         delivery.save()
@@ -187,7 +213,6 @@ class DeliveryCancelView(APIView):
             action="Delivery Cancelled",
             comments=f"Cancelled by {request.user.email}"
         )
-
         return Response({"message": f"Delivery {delivery_id} cancelled successfully"}, status=status.HTTP_200_OK)
 
 
@@ -212,7 +237,11 @@ class CreateDeliveryWithCostView(generics.CreateAPIView):
             dropoff_lon = float(dropoff['longitude'])
             dropoff_lat = float(dropoff['latitude'])
 
-            url = f"http://router.project-osrm.org/route/v1/driving/{pickup_lon},{pickup_lat};{dropoff_lon},{dropoff_lat}?overview=full&geometries=geojson"
+            url = (
+                f"http://router.project-osrm.org/route/v1/driving/"
+                f"{pickup_lon},{pickup_lat};{dropoff_lon},{dropoff_lat}"
+                f"?overview=full&geometries=geojson"
+            )
             response = requests.get(url, timeout=10)
             data = response.json()
 
@@ -226,8 +255,11 @@ class CreateDeliveryWithCostView(generics.CreateAPIView):
         except Exception as e:
             logger.error(f"Route creation error for delivery {delivery.delivery_id}: {str(e)}")
 
-        delivery.total_cost = (Decimal(str(distance)) * Decimal("1.0")) + (total_weight * Decimal("0.5"))
-        delivery.save()
+        total_cost = (Decimal(str(distance)) * Decimal("1.0")) + (total_weight * Decimal("0.5"))
+
+        # Use queryset.update() to avoid firing post_save a second time,
+        # which would create a duplicate 'Delivery Created' notification.
+        Delivery.objects.filter(pk=delivery.pk).update(total_cost=total_cost)
 
         DeliveryLog.objects.create(
             delivery=delivery,
@@ -235,44 +267,17 @@ class CreateDeliveryWithCostView(generics.CreateAPIView):
             comments=f"Delivery created by {self.request.user.email}",
         )
 
+
 class DriverPendingDeliveryListView(generics.ListAPIView):
     permission_classes = [IsAuthenticated, IsVerifiedDriver]
     authentication_classes = [JWTAuthentication]
     serializer_class = DeliveryReadSerializer
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ['created_at', 'total_cost', 'status']
-    # ordering = ['-created_at']
 
     def get_queryset(self):
         user = self.request.user
-
-        # Get all driver posts for this driver
         driver_posts = user.driver_posts.all()
-
-        # Return ALL deliveries connected to ANY of the driver's posts
         return Delivery.objects.filter(
             driver_post_id__in=driver_posts
         ).order_by('-created_at')
-
-
-# class DriverPendingDeliveryListView(generics.ListAPIView):
-#     permission_classes = [IsAuthenticated, IsVerifiedDriver]
-#     authentication_classes = [JWTAuthentication]
-#     serializer_class = DeliveryReadSerializer
-
-#     def get_queryset(self):
-#         user = self.request.user
-
-#         # Driver ke posts fetch karo
-#         driver_posts = user.driver_posts.all()  
-#         start_cities = [post.start_city.name for post in driver_posts]
-#         end_cities = [post.end_city.name for post in driver_posts]
-
-#         # Sirf woh deliveries return karo:
-#         # - still pending
-#         # - city matches driver route
-#         return Delivery.objects.filter(
-#             status=DeliveryStatus.PENDING,
-#             pickup_address__city__in=start_cities,
-#             dropoff_address__city__in=end_cities
-#         )

@@ -1,6 +1,6 @@
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from delivery.models import Delivery, DeliveryLog
+from delivery.models import Delivery, DeliveryLog, DeliveryStatus
 from .models import Payment
 from notification.models import Notification
 from django.utils import timezone
@@ -35,10 +35,10 @@ def create_payment_on_delivery(sender, instance, created, **kwargs):
         )
         logger.info(f"Payment {payment.payment_id} created for delivery {instance.delivery_id}")
 
-# --- Update Payment when Delivery status changes to InTransit ---
+# --- Update Payment when Delivery status changes to In Transit ---
 @receiver(post_save, sender=Delivery)
 def update_payment_on_delivery_status(sender, instance, created, **kwargs):
-    if not created and instance.status == 'InTransit':
+    if not created and instance.status == DeliveryStatus.IN_TRANSIT:
         try:
             payment = Payment.objects.get(delivery_id=instance)
             if payment.payment_status == 'Pending':
@@ -76,8 +76,8 @@ def notify_payment_update(sender, instance, created, **kwargs):
         elif instance.payment_status == 'Completed':
             message = f'Payment of {instance.amount} completed for delivery {instance.delivery_id.delivery_id}.'
             log_action = "Payment Completed"
-            # Trigger delivery acceptance
-            instance.delivery_id.status = 'Accepted'
+            # Mark delivery as Assigned once payment is confirmed
+            instance.delivery_id.status = DeliveryStatus.ASSIGNED
             instance.delivery_id.save()
             if instance.delivery_id.driver_id:
                 Notification.objects.create(

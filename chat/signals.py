@@ -18,34 +18,39 @@ def create_chat_room_on_payment(sender, instance, created, **kwargs):
 
             receiver_user = None
             if instance.delivery_id.driver_post_id:
-                receiver_user = instance.delivery_id.driver_post_id.user  # Driver user
+                receiver_user = instance.delivery_id.driver_post_id.user
+            elif instance.delivery_id.driver_id:
+                receiver_user = instance.delivery_id.driver_id
 
             initial_content = (
-
-                 f"{instance.payment_method} payment of {instance.amount} pending for delivery "
-                 f"from {instance.delivery_id.pickup_city} To {instance.delivery_id.dropoff_city}."
-                )
+                f"{instance.payment_method} payment of {instance.amount} pending for delivery "
+                f"from {instance.delivery_id.pickup_city} To {instance.delivery_id.dropoff_city}."
+            )
 
             if instance.payment_method == 'Cash':
-                initial_content += "Please discuss terms."
+                initial_content += " Please discuss terms."
             elif instance.payment_method == 'EasyPaisa':
-                initial_content += f"Sender: Send to {instance.driver_easypaisa_phone}. Confirm here."
+                initial_content += f" Sender: Send to {instance.driver_easypaisa_phone}. Confirm here."
 
             Message.objects.create(
                 chat_room=chat_room,
                 sender=instance.user_id,
-                receiver=instance.delivery_id.driver_post_id.user if instance.delivery_id.driver_post_id and instance.delivery_id.driver_post_id.user else None,
+                receiver=receiver_user,
                 content=initial_content,
                 created_at=timezone.now()
             )
 
-            Notification.objects.create(
-                user_id=receiver_user,
-                delivery_id=instance.delivery_id,
-                type=f'{instance.payment_method} Payment Pending',
-                message=f'Sender initiated {instance.payment_method} payment for delivery {instance.delivery_id.delivery_id}. Chat to confirm.',
-                created_at=timezone.now()
-            )
+            if receiver_user:
+                Notification.objects.create(
+                    user_id=receiver_user,
+                    delivery_id=instance.delivery_id,
+                    type=f'{instance.payment_method} Payment Pending',
+                    message=(
+                        f'Sender initiated {instance.payment_method} payment for delivery '
+                        f'{instance.delivery_id.delivery_id}. Chat to confirm.'
+                    ),
+                    created_at=timezone.now()
+                )
 
             logger.info(f"Initial message and notification created for payment {instance.payment_id}")
 

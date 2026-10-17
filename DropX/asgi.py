@@ -9,7 +9,7 @@ from channels.auth import AuthMiddlewareStack
 from django.core.asgi import get_asgi_application
 
 # ✅ Django settings environment set karo pehle
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'DropX.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.dev')
 
 # ✅ Django setup abhi karo
 django.setup()

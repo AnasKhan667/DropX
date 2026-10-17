@@ -28,11 +28,11 @@ from rest_framework_simplejwt.views import (
 
 schema_view = get_schema_view(
    openapi.Info(
-      title="Your Project API",
+      title="DropX API",
       default_version='v1',
-      description="API documentation for your project",
-      terms_of_service="https://www.example.com/terms/",
-      contact=openapi.Contact(email="contact@example.com"),
+      description="DropX logistics platform API — connecting senders and drivers for package delivery.",
+      terms_of_service="https://www.dropx.pk/terms/",
+      contact=openapi.Contact(email="support@dropx.pk"),
       license=openapi.License(name="BSD License"),
    ),
    public=True,
