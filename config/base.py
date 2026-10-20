@@ -46,16 +46,16 @@ INSTALLED_APPS = [
     'channels',
 
     # Local apps
-    'accounts',
-    'chat',
-    'delivery',
-    'driver_post',
-    'driver_verification',
-    'notification',
-    'payment',
-    'review',
-    'route',
-    'vehicle',
+    'apps.accounts',
+    'apps.chat',
+    'apps.delivery',
+    'apps.driver_post',
+    'apps.driver_verification',
+    'apps.notification',
+    'apps.payment',
+    'apps.review',
+    'apps.route',
+    'apps.vehicle',
 ]
 
 MIDDLEWARE = [
@@ -89,9 +89,9 @@ TEMPLATES = [
 # REST Framework
 # ---------------------------------------------------------------------------
 REST_FRAMEWORK = {
+    'EXCEPTION_HANDLER': 'core.exceptions.custom_exception_handler',
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-        'rest_framework.authentication.TokenAuthentication',
         'rest_framework.authentication.SessionAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
@@ -100,7 +100,7 @@ REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend',
     ],
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'DEFAULT_PAGINATION_CLASS': 'core.pagination.StandardPagination',
     'PAGE_SIZE': 20,
 }
 
@@ -196,5 +196,5 @@ else:
 # ---------------------------------------------------------------------------
 # Third-party integrations
 # ---------------------------------------------------------------------------
-STRIPE_SECRET_KEY = config('STRIPE_SECRET_KEY', default='sk_test_placeholder')
-STRIPE_PUBLISHABLE_KEY = config('STRIPE_PUBLISHABLE_KEY', default='pk_test_placeholder')
+# Payment is handled via EasyPaisa (manual) and Cash — no external API keys needed.
+# Add integration keys here if/when a payment gateway is introduced.

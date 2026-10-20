@@ -1,0 +1,4 @@
+-r base.txt
+
+# Dev-only extras
+python-dotenv==1.2.1

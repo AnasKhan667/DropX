@@ -1,4 +1,4 @@
-"""
+﻿"""
 URL configuration for DropX project.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
@@ -45,16 +45,16 @@ urlpatterns = [
     path('admin/', admin.site.urls),
 
     # Your app URLs
-    path('api/accounts/', include('accounts.urls')),
-    path('api/chat/', include('chat.urls')),
-    path('api/delivery/', include('delivery.urls')),
-    path('api/driver-post/', include('driver_post.urls')),
-    path('api/driver-verification/', include('driver_verification.urls')),
-    path('api/notification/', include('notification.urls')),
-    path('api/payment/', include('payment.urls')),
-    path('api/review/', include('review.urls')),
-    path('api/route/', include('route.urls')),
-    path('api/vehicle/', include('vehicle.urls')),
+    path('api/accounts/', include('apps.accounts.urls')),
+    path('api/chat/', include('apps.chat.urls')),
+    path('api/delivery/', include('apps.delivery.urls')),
+    path('api/driver-post/', include('apps.driver_post.urls')),
+    path('api/driver-verification/', include('apps.driver_verification.urls')),
+    path('api/notification/', include('apps.notification.urls')),
+    path('api/payment/', include('apps.payment.urls')),
+    path('api/review/', include('apps.review.urls')),
+    path('api/route/', include('apps.route.urls')),
+    path('api/vehicle/', include('apps.vehicle.urls')),
 
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),  # login
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),

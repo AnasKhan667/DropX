@@ -1,4 +1,4 @@
-"""
+﻿"""
 ASGI config for DropX project.
 """
 
@@ -15,8 +15,8 @@ os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.dev')
 django.setup()
 
 # ✅ Ab import karo routing aur middleware
-from chat.middleware import JWTAuthMiddleware
-import chat.routing
+from apps.chat.middleware import JWTAuthMiddleware
+import apps.chat.routing
 
 # ✅ Application config
 application = ProtocolTypeRouter({

@@ -1,0 +1,31 @@
+# DropX — base requirements (all environments)
+Django==4.2.16
+djangorestframework==3.15.2
+django-phonenumber-field==8.0.0
+phonenumbers==8.13.47
+psycopg2-binary==2.9.9
+Pillow==10.4.0
+django-filter==24.3
+django-environ==0.11.2
+python-decouple==3.8
+drf-yasg==1.21.7
+djangorestframework-simplejwt==5.5.1
+django-cors-headers==4.7.0
+django_filters==24.3
+
+# Channels / WebSocket
+channels==4.3.1
+channels-redis==4.3.0
+daphne==4.2.1
+
+# Driver verification
+face-recognition==1.3.0
+pytesseract==0.3.13
+opencv-python==4.12.0.88
+numpy==2.2.6
+scikit-learn==1.7.2
+scipy==1.16.2
+joblib==1.5.2
+
+# Routing / HTTP
+requests==2.32.5
